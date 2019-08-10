@@ -48,10 +48,10 @@ def main(input_filepath, output_filepath):
     snow_df = pd.read_csv(input_path/'patches_with_seasonal_snow.csv', names=['name'], header=None)
     cloud_df = pd.read_csv(input_path/'patches_with_cloud_and_shadow.csv', names=['name'], header=None)
 
-    is_snow = data_df['name'].isin(snow_df['name'].unique()).values
+    is_snow = data_df.name.isin(snow_df.name.unique()).values
     data_df.loc[is_snow, 'labels'] = 'Seasonal snow|' + data_df.loc[is_snow, 'labels']
 
-    is_cloud = data_df['name'].isin(cloud_df['name'].unique()).values
+    is_cloud = data_df.name.isin(cloud_df.name.unique()).values
     data_df.loc[is_cloud, 'labels'] = 'Cloud and cloud shadow|' + data_df.loc[is_cloud, 'labels']
     data_df.loc[is_cloud, 'val'] = -1
 
