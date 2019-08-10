@@ -55,8 +55,7 @@ def main(input_filepath, output_filepath):
     data_df.loc[is_cloud, 'labels'] = 'Cloud and cloud shadow|' + data_df.loc[is_cloud, 'labels']
     data_df.loc[is_cloud, 'val'] = -1
 
-    data_df = data_df.drop(['patch_col', 'patch_row'], axis=1)
-    data_df.to_csv(output_path/'bigearthnet_dataset.csv')
+    data_df.to_csv(output_path/'bigearthnet_dataset.csv', index=False)
 
 
 if __name__ == '__main__':
