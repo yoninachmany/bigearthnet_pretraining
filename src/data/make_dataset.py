@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 import click
 import pandas as pd
-from dotenv import find_dotenv, load_dotenv
+#from dotenv import find_dotenv, load_dotenv
 
 
 @click.command()
@@ -22,8 +22,8 @@ def main(input_filepath, output_filepath):
     output_path = Path(output_filepath)
 
     bigearthnet_path = input_path/'BigEarthNet-v1.0'
-    names = os.listdir(bigearthnet_path)
-    json_file_names = [bigearthnet_path/name/f'{name}_labels_metadata.json' for name in names]
+    patches = os.listdir(bigearthnet_path)
+    json_file_names = [bigearthnet_path/patch/f'{patch}_labels_metadata.json' for patch in patches]
 
     all_labels = []
     tiles = []
@@ -36,26 +36,24 @@ def main(input_filepath, output_filepath):
     all_labels_w_sep = ['|'.join(labels) for labels in all_labels]
     tiles_w_sep = ['_'.join(tile.split('_')[3:6]) for tile in tiles]
 
-    data_df = pd.DataFrame(data={'name': names, 'labels': all_labels_w_sep, 'tile': tiles_w_sep})
-    data_df['date'] = data_df.name.str.split('_').str.get(2)
-    data_df['patch_col'] = data_df.name.str.split('_').str.get(3).astype(int)
-    data_df['patch_row'] = data_df.name.str.split('_').str.get(4).astype(int)
+    data_df = pd.DataFrame(data={'patch': patches, 'labels': all_labels_w_sep, 'tile': tiles_w_sep})
+    data_df['date'] = data_df.patch.str.split('_').str.get(2)
+    data_df['patch_col'] = data_df.patch.str.split('_').str.get(3).astype(int)
+    data_df['patch_row'] = data_df.patch.str.split('_').str.get(4).astype(int)
 
     data_df['val'] = 0
     is_val = (data_df['patch_col'] < 40) & (data_df['patch_row'] < 40)
     data_df.loc[is_val, 'val'] = 1
 
-    snow_df = pd.read_csv(input_path/'patches_with_seasonal_snow.csv', names=['name'], header=None)
-    cloud_df = pd.read_csv(input_path/'patches_with_cloud_and_shadow.csv', names=['name'], header=None)
+    snow_df = pd.read_csv(input_path/'patches_with_seasonal_snow.csv', names=['patch'], header=None)
+    cloud_df = pd.read_csv(input_path/'patches_with_cloud_and_shadow.csv', names=['patch'], header=None)
 
-    is_snow = data_df.name.isin(snow_df.name.unique()).values
+    is_snow = data_df.patch.isin(snow_df.patch.unique()).values
     data_df.loc[is_snow, 'labels'] = 'Seasonal snow|' + data_df.loc[is_snow, 'labels']
 
-    is_cloud = data_df.name.isin(cloud_df.name.unique()).values
-    data_df.loc[is_cloud, 'labels'] = 'Cloud and cloud shadow|' + data_df.loc[is_cloud, 'labels']
-    data_df.loc[is_cloud, 'val'] = -1
+    data_df = data_df[~data_df.patch.isin(cloud_df.patch.unique())]
 
-    data_df.to_csv(output_path/'bigearthnet_dataset.csv', index=False)
+    data_df.to_csv(output_path/'bigearthnet_labels.csv', index=False)
 
 
 if __name__ == '__main__':
@@ -67,6 +65,6 @@ if __name__ == '__main__':
 
     # find .env automagically by walking up directories until it's found, then
     # load up the .env entries as environment variables
-    load_dotenv(find_dotenv())
+    #load_dotenv(find_dotenv())
 
     main()
