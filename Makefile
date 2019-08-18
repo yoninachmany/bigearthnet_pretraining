@@ -1,4 +1,4 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3
+.PHONY: clean data format lint pretrain requirements sync_data_to_s3 sync_data_from_s3
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -27,12 +27,20 @@ requirements: test_environment
 
 ## Make Dataset
 data: requirements
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py
+	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw data/processed
+    
+## Pretrain Model
+pretrain: requirements
+	$(PYTHON_INTERPRETER) src/models/pretrain_model.py $(gpu) $(arch) $(bands) $(scale) $(epochs)
 
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
+
+## Format using black
+format:
+	black src -l 80
 
 ## Lint using pylint
 lint:
