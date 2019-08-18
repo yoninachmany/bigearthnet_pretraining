@@ -29,9 +29,9 @@ requirements: test_environment
 data: requirements
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw data/processed
     
-## Pretrain Model
+## Pretrain Encoder
 pretrain: requirements
-	$(PYTHON_INTERPRETER) src/models/pretrain_model.py $(gpu) $(arch) $(bands) $(scale) $(epochs)
+	$(PYTHON_INTERPRETER) src/models/pretrain_encoder.py $(gpu) $(arch) $(bands) $(scale) $(epochs)
 
 ## Delete all compiled Python files
 clean:
