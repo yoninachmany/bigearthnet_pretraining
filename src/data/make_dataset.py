@@ -86,9 +86,9 @@ def make_slo_lulc_dataset(input_path, output_path):
     test_patches_csv = slo_lulc_path / "test_patches.csv"
     train_df = pd.read_csv(train_patches_csv, index_col=0)
     test_df = pd.read_csv(test_patches_csv, index_col=0)
-    thresh_mask_frac = 0.95
-    thresh_is_data_frac = 0.95
-    thresh_valid_frac = 0.90
+    thresh_mask_frac = 0.99
+    thresh_is_data_frac = 0.99
+    thresh_valid_frac = 0.95
     train_df = train_df[train_df["mask_frac"] > thresh_mask_frac]
     train_df = train_df[train_df["is_data_frac"] > thresh_is_data_frac]
     train_df = train_df[train_df["valid_frac"] > thresh_valid_frac]
