@@ -40,13 +40,12 @@ def main(gpu, arch, bands, scale, epochs):
     logger = logging.getLogger(__name__)
     logger.info("TODO")
 
-    r_g_b_nir_swir1_swir2 = ["B04", "B03", "B02", "B08", "B11", "B12"]
-    bands_str = bands
-
     np.random.seed(42)
     torch.cuda.set_device(gpu)
-
+    
+    model_dir = f"{arch}-{bands}"
     name = f"arch-{arch}-bands-{bands}-scale-{scale}-epochs-{epochs}"
+
     if arch == "xresnet18":
         arch = xresnet18
     elif arch == "xresnet34":
@@ -60,41 +59,36 @@ def main(gpu, arch, bands, scale, epochs):
     else:
         return
 
+    rgb_nir_swir = ["B04", "B03", "B02", "B08", "B11", "B12"]
     if bands == "rgb":
-        bands = r_g_b_nir_swir1_swir2[:3]
+        bands = rgb_nir_swir[:3]
     elif bands == "rgbnir":
-        bands = r_g_b_nir_swir1_swir2[:4]
+        bands = rgb_nir_swir[:4]
     elif bands == "rgbnirswir":
-        bands = r_g_b_nir_swir1_swir2
+        bands = rgb_nir_swir
     else:
         return
 
     data = get_data(bands, scale)
     model = get_model(arch, bands, data)
-    learn = get_learn(data, model, bands_str)
-    cbs = [SaveModelCallback(learn)]
-    cbs += [CSVLogger(learn, filename=name, append=True)]
+    learn = get_learn(data, model, model_dir)
+    cbs = get_callbacks(learn, name)
 
     learn.lr_find()
     learn.recorder.plot(suggestion=True, return_fig=True)
-    plt.savefig(f"reports/figures/{name}-stage1-lr")
+    plt.savefig(f"reports/figures/{name}-lr")
     learn_rate = learn.recorder.min_grad_lr
-
     learn.fit_one_cycle(epochs, slice(learn_rate), callbacks=cbs)
-    learn.save(f"{name}-stage-1")
 
-    learn.unfreeze()
-    learn.lr_find()
-    learn.recorder.plot(suggestion=True, return_fig=True)
-    plt.savefig(f"reports/figures/{name}-stage-2-lr")
-    learn_rate = learn.recorder.min_grad_lr
+    learn.recorder.plot_losses()
+    plt.savefig(f"reports/figures/{name}-losses")
+    learn.recorder.plot_metrics()
+    plt.savefig(f"reports/figures/{name}-metrics")
 
-    learn.fit_one_cycle(epochs, slice(learn_rate), callbacks=cbs)
-    learn.save(f"{bands_str}/{name}-stage-2")
-
-    learn.export(f"{bands_str}/{name}.pkl")
-    st = learn.model.state_dict()
-    torch.save(st, f"models/{bands_str}/{name}-state-dict")
+    learn.save(f"{name}")
+    learn.export(f"{model_dir}/{name}.pkl")
+    state_dict = learn.model.state_dict()
+    torch.save(state_dict, f"models/{model_dir}/{name}-state-dict")
 
 
 class BigEarthNetTiffList(ImageList):
@@ -156,14 +150,21 @@ def get_metrics(thresh=0.2):
     return metrics
 
 
-def get_learn(data, model, bands_str):
+def get_learn(data, model, model_dir):
     """TODO"""
     metrics = get_metrics()
     learn = Learner(
-        data, model, metrics=metrics, path="models", model_dir=bands_str
+        data, model, metrics=metrics, path="models", model_dir=model_dir
     )
     learn = learn.mixup(stack_y=False).to_fp16()
     return learn
+
+
+def get_callbacks(learn, name):
+    """TODO"""
+    cbs = [SaveModelCallback(learn)]
+    cbs += [CSVLogger(learn, filename=name, append=True)]
+    return cbs
 
 
 if __name__ == "__main__":
