@@ -32,6 +32,10 @@ data: requirements
 ## Pretrain Encoder
 pretrain: requirements
 	$(PYTHON_INTERPRETER) src/models/pretrain_encoder.py $(gpu) $(arch) $(bands) $(scale) $(epochs)
+    
+## Train U-Net
+train: requirements
+	$(PYTHON_INTERPRETER) src/models/train_model.py $(gpu) $(arch) $(bands) $(weighted) $(epochs)
 
 ## Delete all compiled Python files
 clean:
