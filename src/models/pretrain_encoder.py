@@ -18,15 +18,8 @@ from fastai.vision import (
     fbeta,
     Learner,
 )
-from fastai.callbacks import SaveModelCallback, CSVLogger
-from fastai.vision.models.xresnet import (
-    xresnet18,
-    xresnet34,
-    xresnet50,
-    xresnet101,
-    xresnet152,
-)
 import torch
+from utils import get_arch_bands, get_callbacks
 
 
 @click.command()
@@ -42,37 +35,16 @@ def main(gpu, arch, bands, scale, epochs):
 
     np.random.seed(42)
     torch.cuda.set_device(gpu)
-    
-    model_dir = f"{arch}-{bands}"
+
     name = f"arch-{arch}-bands-{bands}-scale-{scale}-epochs-{epochs}"
-
-    if arch == "xresnet18":
-        arch = xresnet18
-    elif arch == "xresnet34":
-        arch = xresnet34
-    elif arch == "xresnet50":
-        arch = xresnet50
-    elif arch == "xresnet101":
-        arch = xresnet101
-    elif arch == "xresnet152":
-        arch = xresnet152
-    else:
-        return
-
-    rgb_nir_swir = ["B04", "B03", "B02", "B08", "B11", "B12"]
-    if bands == "rgb":
-        bands = rgb_nir_swir[:3]
-    elif bands == "rgbnir":
-        bands = rgb_nir_swir[:4]
-    elif bands == "rgbnirswir":
-        bands = rgb_nir_swir
-    else:
+    arch, bands = get_arch_bands(arch, bands)
+    if arch is None or bands is None:
         return
 
     data = get_data(bands, scale)
     model = get_model(arch, bands, data)
-    learn = get_learn(data, model, model_dir)
-    cbs = get_callbacks(learn, name)
+    learn = get_learn(data, model, name)
+    cbs = get_callbacks(learn, name, "fbeta")
 
     learn.lr_find()
     learn.recorder.plot(suggestion=True, return_fig=True)
@@ -86,9 +58,9 @@ def main(gpu, arch, bands, scale, epochs):
     plt.savefig(f"reports/figures/{name}-metrics")
 
     learn.save(f"{name}")
-    learn.export(f"{model_dir}/{name}.pkl")
+    learn.export(f"{name}/{name}.pkl")
     state_dict = learn.model.state_dict()
-    torch.save(state_dict, f"models/{model_dir}/{name}-state-dict")
+    torch.save(state_dict, f"models/{name}/{name}-state-dict")
 
 
 class BigEarthNetTiffList(ImageList):
@@ -150,21 +122,12 @@ def get_metrics(thresh=0.2):
     return metrics
 
 
-def get_learn(data, model, model_dir):
+def get_learn(data, model, name):
     """TODO"""
     metrics = get_metrics()
-    learn = Learner(
-        data, model, metrics=metrics, path="models", model_dir=model_dir
-    )
+    learn = Learner(data, model, metrics=metrics, path="models", model_dir=name)
     learn = learn.mixup(stack_y=False).to_fp16()
     return learn
-
-
-def get_callbacks(learn, name):
-    """TODO"""
-    cbs = [SaveModelCallback(learn)]
-    cbs += [CSVLogger(learn, filename=name, append=True)]
-    return cbs
 
 
 if __name__ == "__main__":
