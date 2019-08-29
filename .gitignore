@@ -90,3 +90,5 @@ target/
 
 # > 100 MB model files
 *.pth
+models/arch-unet-*/*.pkl
+models/arch-unet-*/*-state-dict
